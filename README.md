@@ -1,2 +1,10 @@
 # clean-and-repair-scanned-documents
+
 A web demo for cleaning and repairing scanned documents
+
+* [Complete](https://tony-xlh.github.io/clean-and-repair-scanned-documents/). The main demo. [Dynamsoft Document Viewer](https://www.dynamsoft.com/document-viewer/docs/introduction/index.html) is used.
+* [inpaint](https://tony-xlh.github.io/clean-and-repair-scanned-documents/inpainting.html). The inpainting demo which lets you select a mask image and a source image for inpainting.
+
+
+
+
