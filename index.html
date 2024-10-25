@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Clean up and Repair Documents</title>
+  <script src="https://cdn.jsdelivr.net/npm/dynamsoft-document-viewer@2.0.0/dist/ddv.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/dynamsoft-document-viewer@2.0.0/dist/ddv.css">
+</head>
+<style>
+  .container {
+    display: flex;
+    align-items: center;
+    flex-direction: column;
+  }
+  
+  .container h2 {
+    text-align: center;
+  }
+
+  #viewer {
+    width: 1024px;
+    height: 600px;
+  }
+</style>
+<body>
+  <div class="container">
+    <h2>Clean up and Repair Scanned Documents</h2>
+    <label>
+      Select an image:
+      <br/>
+      <input type="file" id="files" name="files" onchange="filesSelected()"/>
+    </label>
+    <div id="viewer"></div>
+  </div>
+</body>
+<script>
+let doc;
+let editViewer;
+init();
+async function init(){
+  //Dynamsoft.DDV.Core.license = "DLS2eyJoYW5kc2hha2VDb2RlIjoiMjAwMDAxLTE2NDk4Mjk3OTI2MzUiLCJvcmdhbml6YXRpb25JRCI6IjIwMDAwMSIsInNlc3Npb25QYXNzd29yZCI6IndTcGR6Vm05WDJrcEQ5YUoifQ==";
+  Dynamsoft.DDV.Core.license = "DLS2eyJoYW5kc2hha2VDb2RlIjoiMTAwMjI3NzYzLVRYbFFjbTlxIiwibWFpblNlcnZlclVSTCI6Imh0dHBzOi8vbWx0cy5keW5hbXNvZnQuY29tIiwib3JnYW5pemF0aW9uSUQiOiIxMDAyMjc3NjMiLCJzdGFuZGJ5U2VydmVyVVJMIjoiaHR0cHM6Ly9zbHRzLmR5bmFtc29mdC5jb20iLCJjaGVja0NvZGUiOjE4OTc4MDUzNDV9";
+  
+  Dynamsoft.DDV.Core.engineResourcePath = "https://cdn.jsdelivr.net/npm/dynamsoft-document-viewer@2.0.0/dist/engine";// Lead to a folder containing the distributed WASM files
+  await Dynamsoft.DDV.Core.init();
+  Dynamsoft.DDV.setProcessingHandler("imageFilter", new Dynamsoft.DDV.ImageFilter());
+  let uiConfig = {
+    type: "Layout",
+    flexDirection: "column",
+    className: "ddv-edit-viewer-desktop",
+    children: [
+      {
+        type: "Layout",
+        className: "ddv-edit-viewer-header-desktop",
+        children: [
+          {
+            type: "Layout",
+            children: [
+              "ThumbnailSwitch",
+              "Zoom",
+              "FitMode",
+              "DisplayMode",
+              "RotateLeft",
+              "RotateRight",
+              "Crop",
+              "Filter",
+              "Undo",
+              "Redo",
+              "DeleteCurrent",
+              "DeleteAll",
+              "Pan",
+              "SeparatorLine",
+              "AnnotationSet"
+            ],
+            enableScroll: true
+          },
+          {
+            type: "Layout",
+            children: [
+              {
+                "type": "Pagination",
+                "className": "ddv-edit-viewer-pagination-desktop"
+              },
+              "Load",
+              "Download",
+              "Print"
+            ]
+          }
+        ]
+      },
+      "MainView"
+    ]
+  }
+  editViewer = new Dynamsoft.DDV.EditViewer({
+    uiConfig: uiConfig,
+    container: document.getElementById("viewer")
+  });
+  
+  const docManager = Dynamsoft.DDV.documentManager;
+  doc = docManager.createDocument();
+  editViewer.openDocument(doc.uid);
+}
+
+async function filesSelected(){
+  let filesInput = document.getElementById("files");
+  let files = filesInput.files;
+  if (files.length>0) {
+    for (let index = 0; index < files.length; index++) {
+      const file = files[index];
+      const blob = await readFileAsBlob(file);
+      console.log(blob);
+      await doc.loadSource(blob);  
+    }    
+  }
+}
+
+function readFileAsBlob(file){
+  return new Promise((resolve, reject) => {
+    const fileReader = new FileReader();
+    fileReader.onload = async function(e){
+      //const blob = window.dataURLtoBlob(e.target.result);
+      const response = await fetch(e.target.result);
+      const blob = await response.blob();
+      resolve(blob);
+    };
+    fileReader.onerror = function () {
+      reject('oops, something went wrong.');
+    };
+    fileReader.readAsDataURL(file); 
+  })
+}
+</script>
+</html>
