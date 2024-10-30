@@ -40,6 +40,7 @@
 <script>
 let doc;
 let editViewer;
+let perspectiveViewer;
 init();
 let hoverOnUndoRedo = false;
 async function init(){
@@ -104,6 +105,40 @@ async function init(){
   const docManager = Dynamsoft.DDV.documentManager;
   doc = docManager.createDocument();
   editViewer.openDocument(doc.uid);
+
+  let perspectiveViewerUIConfig = {
+    type: "Layout",
+    flexDirection: "column",
+    children: [
+      {
+        type: "Layout",
+        className: "ddv-perspective-viewer-header-desktop",
+        children: [
+          "FullQuad",
+          "RotateLeft",
+          "RotateRight",
+          "DeleteCurrent",
+          "DeleteAll",
+          {
+            type: "Pagination",
+            className: "ddv-perspective-viewer-pagination-desktop"
+          },
+          {
+            type: "PerspectiveAll",
+            className: "ddv-perspective-viewer-perspective-desktop"
+          }
+        ]
+      },
+      "MainView"
+    ]
+  }
+
+  perspectiveViewer = new Dynamsoft.DDV.PerspectiveViewer({
+    uiConfig: perspectiveViewerUIConfig,
+    container: document.getElementById("viewer"),
+  });
+  perspectiveViewer.openDocument(doc.uid);
+  switchViewer(true);
   Dynamsoft.DDV.annotationManager.on("annotationsAdded",(e) => {
     console.log(e)
     if (document.getElementById("inpainingMode").checked && hoverOnUndoRedo === false) {
@@ -122,6 +157,16 @@ async function init(){
   document.getElementsByClassName("ddv-redo-page")[0].addEventListener("mouseleave",function(){
     hoverOnUndoRedo = false;
   })
+}
+
+function switchViewer(useEditViewer){
+  perspectiveViewer.hide();
+  editViewer.hide();
+  if (useEditViewer) {
+    editViewer.show();
+  }else{
+    perspectiveViewer.show();
+  }
 }
 
 function addInpaintingModeCheckbox(){
