@@ -130,6 +130,9 @@ async function inpaint(uid) {
   console.log(annotation);
   let options = annotation.getOptions();
   let pointsOfStrokes = options.points;
+  if (!pointsOfStrokes) { //not ink annotation
+    return;
+  }
   let borderWidth = options.borderWidth;
   let rect = await getRectForInpainting(pointsOfStrokes,borderWidth);
   let {scaleX,scaleY} = await getScale();
@@ -175,12 +178,27 @@ async function inpaint(uid) {
   for(let i = 0; i < img_u8.length; i++){
     srcImageData.data[4 * i + 3] = 255;
   }
-  let output = document.createElement("canvas");
-  output.width = rectInPixels.width;
-  output.height = rectInPixels.height;
-  let ctx = output.getContext("2d");
-  ctx.putImageData(srcImageData, 0, 0);
-  document.body.appendChild(output);
+  srcCtx.putImageData(srcImageData, 0, 0);
+  srcImageCanvas.toBlob(
+    (blob) => {
+      insertInpaintedImage(blob,rect);
+      Dynamsoft.DDV.annotationManager.deleteAnnotations([uid]);
+    },
+    "image/png"
+  );
+}
+
+async function insertInpaintedImage(blob,rect){
+  const pageIndex = editViewer.getCurrentPageIndex();
+  const pageUid = editViewer.indexToUid(pageIndex);
+  const options = {
+    x: rect.x,
+    y: rect.y,
+    width: rect.width,
+    height: rect.height,
+    stamp: blob 
+  }
+  const stamp = await Dynamsoft.DDV.annotationManager.createAnnotation(pageUid, "stamp", options);
 }
 
 function getSourceImageForInpainting(rect){
@@ -194,7 +212,6 @@ function getSourceImageForInpainting(rect){
       canvas.height = rect.height;
       let ctx = canvas.getContext("2d");
       ctx.drawImage(img, rect.x, rect.y, rect.width, rect.height, 0, 0, rect.width, rect.height);
-      document.body.appendChild(canvas);
       resolve(canvas);
     }
     img.src = url;
@@ -225,7 +242,6 @@ function getMaskImageForInpainting(pointsOfStrokes,stroke,rect,rectInPixels,scal
     ctx.lineWidth = stroke * scaleX;
     ctx.stroke();
   }
-  document.body.appendChild(canvas);
   return canvas;
 }
 
