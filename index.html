@@ -139,6 +139,8 @@ async function inpaint(uid) {
   let rectInPixels = {x:rect.x / scaleX,y:rect.y / scaleY,width:rect.width / scaleX,height:rect.height / scaleY};
   let srcImageCanvas = await getSourceImageForInpainting(rectInPixels);
   let maskImageCanvas = getMaskImageForInpainting(pointsOfStrokes,borderWidth,rect,rectInPixels,scaleX,scaleY);
+  document.body.appendChild(srcImageCanvas);
+  document.body.appendChild(maskImageCanvas);
   let srcCtx = srcImageCanvas.getContext("2d");
   let maskCtx = maskImageCanvas.getContext("2d");
   let srcImageData = srcCtx.getImageData(0, 0, srcImageCanvas.width, srcImageCanvas.height);
@@ -178,8 +180,14 @@ async function inpaint(uid) {
   for(let i = 0; i < img_u8.length; i++){
     srcImageData.data[4 * i + 3] = 255;
   }
-  srcCtx.putImageData(srcImageData, 0, 0);
-  srcImageCanvas.toBlob(
+  
+  let output = document.createElement("canvas");
+  output.width = rectInPixels.width;
+  output.height = rectInPixels.height;
+  let ctx = output.getContext("2d");
+  ctx.putImageData(srcImageData, 0, 0);
+  document.body.appendChild(output);
+  output.toBlob(
     (blob) => {
       insertInpaintedImage(blob,rect);
       Dynamsoft.DDV.annotationManager.deleteAnnotations([uid]);
@@ -255,6 +263,9 @@ async function getScale(){
 }
 
 async function getRectForInpainting(pointsOfStrokes,borderWidth){
+  const pageIndex = editViewer.getCurrentPageIndex();
+  const pageUid = editViewer.indexToUid(pageIndex);
+  const pageData = await doc.getPageData(pageUid);
   let halfLineWidth = borderWidth/2;
   let minX,minY,maxX,maxY;
   maxX = 0;
@@ -278,10 +289,17 @@ async function getRectForInpainting(pointsOfStrokes,borderWidth){
       maxY = Math.max(maxY,point.y);
     }
   }
+  maxX = maxX + halfLineWidth;
+  maxY = maxY + halfLineWidth;
   let x = minX - halfLineWidth;
   let y = minY - halfLineWidth;
-  let width = maxX - minX + halfLineWidth * 2;
-  let height = maxY - minY + halfLineWidth * 2;
+  //add padding
+  x = Math.max(x - borderWidth, 0) 
+  y = Math.max(y - borderWidth, 0)
+  maxX = Math.min(maxX + borderWidth*2, pageData.mediaBox.width);
+  maxY = Math.min(maxY + borderWidth*2, pageData.mediaBox.height);
+  let width = maxX - minX + halfLineWidth;
+  let height = maxY - minY + halfLineWidth;
   return {x:x,y:y,width:width,height:height};
 }
 
