@@ -5,8 +5,8 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Clean up and Repair Documents</title>
-  <script src="https://cdn.jsdelivr.net/npm/dynamsoft-document-viewer@2.0.0/dist/ddv.js"></script>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/dynamsoft-document-viewer@2.0.0/dist/ddv.css">
+  <script src="/node_modules/dynamsoft-document-viewer/dist/ddv.js"></script>
+  <link rel="stylesheet" href="/node_modules/dynamsoft-document-viewer/dist/ddv.css">
 </head>
 <style>
   .container {
@@ -43,7 +43,7 @@ async function init(){
   //Dynamsoft.DDV.Core.license = "DLS2eyJoYW5kc2hha2VDb2RlIjoiMjAwMDAxLTE2NDk4Mjk3OTI2MzUiLCJvcmdhbml6YXRpb25JRCI6IjIwMDAwMSIsInNlc3Npb25QYXNzd29yZCI6IndTcGR6Vm05WDJrcEQ5YUoifQ==";
   Dynamsoft.DDV.Core.license = "DLS2eyJoYW5kc2hha2VDb2RlIjoiMTAwMjI3NzYzLVRYbFFjbTlxIiwibWFpblNlcnZlclVSTCI6Imh0dHBzOi8vbWx0cy5keW5hbXNvZnQuY29tIiwib3JnYW5pemF0aW9uSUQiOiIxMDAyMjc3NjMiLCJzdGFuZGJ5U2VydmVyVVJMIjoiaHR0cHM6Ly9zbHRzLmR5bmFtc29mdC5jb20iLCJjaGVja0NvZGUiOjE4OTc4MDUzNDV9";
   
-  Dynamsoft.DDV.Core.engineResourcePath = "https://cdn.jsdelivr.net/npm/dynamsoft-document-viewer@2.0.0/dist/engine";// Lead to a folder containing the distributed WASM files
+  Dynamsoft.DDV.Core.engineResourcePath = "/node_modules/dynamsoft-document-viewer/dist/engine";// Lead to a folder containing the distributed WASM files
   await Dynamsoft.DDV.Core.init();
   Dynamsoft.DDV.setProcessingHandler("imageFilter", new Dynamsoft.DDV.ImageFilter());
   let uiConfig = {
@@ -72,7 +72,7 @@ async function init(){
               "DeleteAll",
               "Pan",
               "SeparatorLine",
-              "AnnotationSet"
+              "InkAnnotation"
             ],
             enableScroll: true
           },
@@ -97,10 +97,31 @@ async function init(){
     uiConfig: uiConfig,
     container: document.getElementById("viewer")
   });
-  
+  addInpaintingModeCheckbox();
   const docManager = Dynamsoft.DDV.documentManager;
   doc = docManager.createDocument();
   editViewer.openDocument(doc.uid);
+  Dynamsoft.DDV.annotationManager.on("annotationsAdded",(e) => {
+    console.log(e)
+  })
+}
+
+function addInpaintingModeCheckbox(){
+  const html = `
+  <div class="ddv-palette-mode-panel" style="width: 85%;">
+    <label>
+      Inpainting mode
+      <input type="checkbox" id="inpainingMode">
+    </label>
+  </div>
+  `
+  let container = document.createElement("div");
+  document.getElementById("viewer").getElementsByClassName("ddv-palette-box")[0].appendChild(container);
+  container.outerHTML = html;
+}
+
+function inpaint() {
+  
 }
 
 async function filesSelected(){
