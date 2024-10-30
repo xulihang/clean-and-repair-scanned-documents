@@ -41,6 +41,7 @@
 let doc;
 let editViewer;
 init();
+let hoverOnUndoRedo = false;
 async function init(){
   //Dynamsoft.DDV.Core.license = "DLS2eyJoYW5kc2hha2VDb2RlIjoiMjAwMDAxLTE2NDk4Mjk3OTI2MzUiLCJvcmdhbml6YXRpb25JRCI6IjIwMDAwMSIsInNlc3Npb25QYXNzd29yZCI6IndTcGR6Vm05WDJrcEQ5YUoifQ==";
   Dynamsoft.DDV.Core.license = "DLS2eyJoYW5kc2hha2VDb2RlIjoiMTAwMjI3NzYzLVRYbFFjbTlxIiwibWFpblNlcnZlclVSTCI6Imh0dHBzOi8vbWx0cy5keW5hbXNvZnQuY29tIiwib3JnYW5pemF0aW9uSUQiOiIxMDAyMjc3NjMiLCJzdGFuZGJ5U2VydmVyVVJMIjoiaHR0cHM6Ly9zbHRzLmR5bmFtc29mdC5jb20iLCJjaGVja0NvZGUiOjE4OTc4MDUzNDV9";
@@ -105,9 +106,21 @@ async function init(){
   editViewer.openDocument(doc.uid);
   Dynamsoft.DDV.annotationManager.on("annotationsAdded",(e) => {
     console.log(e)
-    if (document.getElementById("inpainingMode").checked) {
+    if (document.getElementById("inpainingMode").checked && hoverOnUndoRedo === false) {
       inpaint(e.annotationUids[0]);
     }
+  })
+  document.getElementsByClassName("ddv-redo-page")[0].addEventListener("mouseenter",function(){
+    hoverOnUndoRedo = true;
+  })
+  document.getElementsByClassName("ddv-undo-page")[0].addEventListener("mouseenter",function(){
+    hoverOnUndoRedo = true;
+  })
+  document.getElementsByClassName("ddv-undo-page")[0].addEventListener("mouseleave",function(){
+    hoverOnUndoRedo = false;
+  })
+  document.getElementsByClassName("ddv-redo-page")[0].addEventListener("mouseleave",function(){
+    hoverOnUndoRedo = false;
   })
 }
 
