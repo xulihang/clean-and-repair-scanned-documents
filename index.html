@@ -133,6 +133,7 @@ async function inpaint(uid) {
   if (!pointsOfStrokes) { //not ink annotation
     return;
   }
+  Dynamsoft.DDV.annotationManager.deleteAnnotations([uid]);
   let borderWidth = options.borderWidth;
   let rect = await getRectForInpainting(pointsOfStrokes,borderWidth);
   let {scaleX,scaleY} = await getScale();
@@ -190,7 +191,6 @@ async function inpaint(uid) {
   output.toBlob(
     (blob) => {
       insertInpaintedImage(blob,rect);
-      Dynamsoft.DDV.annotationManager.deleteAnnotations([uid]);
     },
     "image/png"
   );
@@ -211,7 +211,7 @@ async function insertInpaintedImage(blob,rect){
 
 function getSourceImageForInpainting(rect){
   return new Promise(async (resolve, reject) => {
-    const result = await doc.saveToJpeg(editViewer.getCurrentPageIndex(),{quality:100});
+    const result = await doc.saveToJpeg(editViewer.getCurrentPageIndex(),{quality:100,saveAnnotation:true});
     const canvas = document.createElement("canvas");
     const img = document.createElement("img");
     const url = URL.createObjectURL(result);
