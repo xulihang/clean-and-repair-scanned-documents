@@ -153,8 +153,8 @@ async function inpaint(uid) {
   let rectInPixels = {x:rect.x / scaleX,y:rect.y / scaleY,width:rect.width / scaleX,height:rect.height / scaleY};
   let srcImageCanvas = await getSourceImageForInpainting(rectInPixels);
   let maskImageCanvas = getMaskImageForInpainting(pointsOfStrokes,borderWidth,rect,rectInPixels,scaleX,scaleY);
-  document.body.appendChild(srcImageCanvas);
-  document.body.appendChild(maskImageCanvas);
+  //document.body.appendChild(srcImageCanvas);
+  //document.body.appendChild(maskImageCanvas);
   let srcCtx = srcImageCanvas.getContext("2d");
   let maskCtx = maskImageCanvas.getContext("2d");
   let srcImageData = srcCtx.getImageData(0, 0, srcImageCanvas.width, srcImageCanvas.height);
@@ -200,7 +200,7 @@ async function inpaint(uid) {
   output.height = rectInPixels.height;
   let ctx = output.getContext("2d");
   ctx.putImageData(srcImageData, 0, 0);
-  document.body.appendChild(output);
+  //document.body.appendChild(output);
   output.toBlob(
     (blob) => {
       insertInpaintedImage(blob,rect);
