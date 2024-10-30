@@ -7,6 +7,8 @@
   <title>Clean up and Repair Documents</title>
   <script src="/node_modules/dynamsoft-document-viewer/dist/ddv.js"></script>
   <link rel="stylesheet" href="/node_modules/dynamsoft-document-viewer/dist/ddv.css">
+  <script type="text/javascript" src="inpaint.js"></script>
+  <script type="text/javascript" src="heapqueue.js"></script>
 </head>
 <style>
   .container {
@@ -103,6 +105,9 @@ async function init(){
   editViewer.openDocument(doc.uid);
   Dynamsoft.DDV.annotationManager.on("annotationsAdded",(e) => {
     console.log(e)
+    if (document.getElementById("inpainingMode").checked) {
+      inpaint(e.annotationUids[0]);
+    }
   })
 }
 
@@ -120,8 +125,148 @@ function addInpaintingModeCheckbox(){
   container.outerHTML = html;
 }
 
-function inpaint() {
-  
+async function inpaint(uid) {
+  let annotation = Dynamsoft.DDV.annotationManager.getAnnotationsByUids([uid])[0];
+  console.log(annotation);
+  let options = annotation.getOptions();
+  let pointsOfStrokes = options.points;
+  let borderWidth = options.borderWidth;
+  let rect = await getRectForInpainting(pointsOfStrokes,borderWidth);
+  let {scaleX,scaleY} = await getScale();
+  let rectInPixels = {x:rect.x / scaleX,y:rect.y / scaleY,width:rect.width / scaleX,height:rect.height / scaleY};
+  let srcImageCanvas = await getSourceImageForInpainting(rectInPixels);
+  let maskImageCanvas = getMaskImageForInpainting(pointsOfStrokes,borderWidth,rect,rectInPixels,scaleX,scaleY);
+  let srcCtx = srcImageCanvas.getContext("2d");
+  let maskCtx = maskImageCanvas.getContext("2d");
+  let srcImageData = srcCtx.getImageData(0, 0, srcImageCanvas.width, srcImageCanvas.height);
+  let maskImageData = maskCtx.getImageData(0, 0, maskImageCanvas.width, maskImageCanvas.height);
+
+  let width = srcImageData.width;
+  let height = srcImageData.height;
+  let mask_u8 = new Uint8Array(width * height);
+
+  for(let i = 0; i < maskImageData.data.length / 4; i++){
+    let r = maskImageData.data[4 * i];
+    let g = maskImageData.data[4 * i + 1];
+    let b = maskImageData.data[4 * i + 2];
+    if(r > 0 || g > 0 || b > 0){
+      let rad = 6
+      for(let dx = -rad; dx <= rad; dx++){
+        for(let dy = -rad; dy <= rad; dy++){
+          if(dx * dx + dy * dy <= rad * rad){
+            mask_u8[i + dx + dy * width] = 1;
+          }
+        }
+      }
+    }
+  }
+  let img_u8 = new Uint8Array(width * height)
+  for(let channel = 0; channel < 3; channel++){
+    for(let n = 0; n < srcImageData.data.length; n+=4){
+      img_u8[n / 4] = srcImageData.data[n + channel]
+    }
+    InpaintTelea(width, height, img_u8, mask_u8)
+    for(let i = 0; i < img_u8.length; i++){
+      srcImageData.data[4 * i + channel] = img_u8[i]
+    }  
+  }
+
+  // render result back to canvas
+  for(let i = 0; i < img_u8.length; i++){
+    srcImageData.data[4 * i + 3] = 255;
+  }
+  let output = document.createElement("canvas");
+  output.width = rectInPixels.width;
+  output.height = rectInPixels.height;
+  let ctx = output.getContext("2d");
+  ctx.putImageData(srcImageData, 0, 0);
+  document.body.appendChild(output);
+}
+
+function getSourceImageForInpainting(rect){
+  return new Promise(async (resolve, reject) => {
+    const result = await doc.saveToJpeg(editViewer.getCurrentPageIndex(),{quality:100});
+    const canvas = document.createElement("canvas");
+    const img = document.createElement("img");
+    const url = URL.createObjectURL(result);
+    img.onload = function(){
+      canvas.width = rect.width;
+      canvas.height = rect.height;
+      let ctx = canvas.getContext("2d");
+      ctx.drawImage(img, rect.x, rect.y, rect.width, rect.height, 0, 0, rect.width, rect.height);
+      document.body.appendChild(canvas);
+      resolve(canvas);
+    }
+    img.src = url;
+  })
+}
+
+function getMaskImageForInpainting(pointsOfStrokes,stroke,rect,rectInPixels,scaleX,scaleY){
+  let canvas = document.createElement("canvas");
+  canvas.width = rectInPixels.width;
+  canvas.height = rectInPixels.height;
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "black";
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+  for (let i = 0; i < pointsOfStrokes.length; i++) {
+    const pointsOfStroke = pointsOfStrokes[i];
+    ctx.beginPath();
+    for (let j = 0; j < pointsOfStroke.length; j++) {
+      const point = pointsOfStroke[j];
+      const x = (point.x - rect.x) / scaleX;
+      const y = (point.y - rect.y) / scaleY;
+      if (j === 0) {
+        ctx.moveTo(x, y);
+      }else{
+        ctx.lineTo(x, y);
+      }
+    }
+    ctx.strokeStyle = "red";
+    ctx.lineWidth = stroke * scaleX;
+    ctx.stroke();
+  }
+  document.body.appendChild(canvas);
+  return canvas;
+}
+
+async function getScale(){
+  const pageIndex = editViewer.getCurrentPageIndex();
+  const pageUid = editViewer.indexToUid(pageIndex);
+  const pageData = await doc.getPageData(pageUid);
+  const scaleX = pageData.mediaBox.width / pageData.raw.width;
+  const scaleY = pageData.mediaBox.height / pageData.raw.height;
+  return {scaleX:scaleX,scaleY:scaleY};
+}
+
+async function getRectForInpainting(pointsOfStrokes,borderWidth){
+  let halfLineWidth = borderWidth/2;
+  let minX,minY,maxX,maxY;
+  maxX = 0;
+  maxY = 0;
+  console.log(pointsOfStrokes);
+  for (let i = 0; i < pointsOfStrokes.length; i++) {
+    const pointsOfStroke = pointsOfStrokes[i];
+    for (let j = 0; j < pointsOfStroke.length; j++) {
+      const point = pointsOfStroke[j];
+      if (!minX) {
+        minX = point.x;
+      }else{
+        minX = Math.min(minX,point.x);
+      }
+      if (!minY) {
+        minY = point.y;
+      }else{
+        minY = Math.min(minY,point.y);
+      }
+      maxX = Math.max(maxX,point.x);
+      maxY = Math.max(maxY,point.y);
+    }
+  }
+  let x = minX - halfLineWidth;
+  let y = minY - halfLineWidth;
+  let width = maxX - minX + halfLineWidth * 2;
+  let height = maxY - minY + halfLineWidth * 2;
+  return {x:x,y:y,width:width,height:height};
 }
 
 async function filesSelected(){
