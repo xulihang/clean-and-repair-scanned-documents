@@ -148,9 +148,20 @@ async function init(){
 async function saveOperations(){
   editViewer.saveOperations();
   const index = editViewer.getCurrentPageIndex();
-  const result = await doc.saveToJpeg(index,{quality:100,saveAnnotation:true});
+  const result = await doc.saveToPng(index,{saveAnnotation:true});
+  //download(result);
   doc.deletePages([index]);
   await doc.loadSource(result, index);
+}
+
+function download(blob){
+  const imageURL = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = imageURL;
+  link.download = 'image.png';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 }
 
 function addInpaintingModeCheckbox(){
