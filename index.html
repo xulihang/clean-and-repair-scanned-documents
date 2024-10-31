@@ -33,6 +33,13 @@
       height: 1.5em !important;
       filter: invert(1);
     }
+
+    @media screen and (max-device-width: 600px){
+      #viewer {
+        width: 100%;
+        height: 480px;
+      }
+    }
   </style>
 </head>
 <body>
@@ -101,9 +108,7 @@ async function init(){
                 "type": "Pagination",
                 "className": "ddv-edit-viewer-pagination-desktop"
               },
-              "Load",
-              "Download",
-              "Print"
+              "Download"
             ]
           }
         ]
