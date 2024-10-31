@@ -53,9 +53,7 @@ init();
 let hoverOnUndoRedo = false;
 async function init(){
   let oneDayTrialLicense = "DLS2eyJoYW5kc2hha2VDb2RlIjoiMjAwMDAxLTE2NDk4Mjk3OTI2MzUiLCJvcmdhbml6YXRpb25JRCI6IjIwMDAwMSIsInNlc3Npb25QYXNzd29yZCI6IndTcGR6Vm05WDJrcEQ5YUoifQ==";
-  let license = "DLS2eyJoYW5kc2hha2VDb2RlIjoiMTAwMjI3NzYzLVRYbFFjbTlxIiwibWFpblNlcnZlclVSTCI6Imh0dHBzOi8vbWx0cy5keW5hbXNvZnQuY29tIiwib3JnYW5pemF0aW9uSUQiOiIxMDAyMjc3NjMiLCJzdGFuZGJ5U2VydmVyVVJMIjoiaHR0cHM6Ly9zbHRzLmR5bmFtc29mdC5jb20iLCJjaGVja0NvZGUiOjE4OTc4MDUzNDV9";
-  Dynamsoft.DDV.Core.license = license;
-  //Dynamsoft.DDV.Core.license = oneDayTrialLicense;
+  Dynamsoft.DDV.Core.license = oneDayTrialLicense;
   Dynamsoft.DDV.Core.engineResourcePath = "https://cdn.jsdelivr.net/npm/dynamsoft-document-viewer@2.0.0/dist/engine";// Lead to a folder containing the distributed WASM files
   await Dynamsoft.DDV.Core.init();
   Dynamsoft.DDV.setProcessingHandler("imageFilter", new Dynamsoft.DDV.ImageFilter());
@@ -300,7 +298,7 @@ function getMaskImageForInpainting(pointsOfStrokes,stroke,rect,rectInPixels,scal
       }
     }
     ctx.strokeStyle = "red";
-    ctx.lineWidth = stroke * scaleX;
+    ctx.lineWidth = stroke / scaleX;
     ctx.stroke();
   }
   return canvas;
