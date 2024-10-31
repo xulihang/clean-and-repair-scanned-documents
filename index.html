@@ -9,23 +9,39 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/dynamsoft-document-viewer@2.0.0/dist/ddv.css">
   <script type="text/javascript" src="inpaint.js"></script>
   <script type="text/javascript" src="heapqueue.js"></script>
-</head>
-<style>
-  .container {
-    display: flex;
-    align-items: center;
-    flex-direction: column;
-  }
+  <style>
+    .container {
+      display: flex;
+      align-items: center;
+      flex-direction: column;
+    }
+    
+    .container h2 {
+      text-align: center;
+    }
   
-  .container h2 {
-    text-align: center;
-  }
+    #viewer {
+      width: 1024px;
+      height: 600px;
+    }
+  
+    .save-icon {
+      background-image: url("./save.svg");
+      background-position: center;
+      background-size: contain;
+      background-repeat: no-repeat;
+      height: 1.5em !important;
+      filter: invert(1);
+    }
 
-  #viewer {
-    width: 1024px;
-    height: 600px;
-  }
-</style>
+    @media screen and (max-device-width: 600px){
+      #viewer {
+        width: 100%;
+        height: 480px;
+      }
+    }
+  </style>
+</head>
 <body>
   <div class="container">
     <h2>Clean up and Repair Scanned Documents</h2>
@@ -43,7 +59,8 @@ let editViewer;
 init();
 let hoverOnUndoRedo = false;
 async function init(){
-  Dynamsoft.DDV.Core.license = "DLS2eyJoYW5kc2hha2VDb2RlIjoiMjAwMDAxLTE2NDk4Mjk3OTI2MzUiLCJvcmdhbml6YXRpb25JRCI6IjIwMDAwMSIsInNlc3Npb25QYXNzd29yZCI6IndTcGR6Vm05WDJrcEQ5YUoifQ==";
+  let oneDayTrialLicense = "DLS2eyJoYW5kc2hha2VDb2RlIjoiMjAwMDAxLTE2NDk4Mjk3OTI2MzUiLCJvcmdhbml6YXRpb25JRCI6IjIwMDAwMSIsInNlc3Npb25QYXNzd29yZCI6IndTcGR6Vm05WDJrcEQ5YUoifQ==";
+  Dynamsoft.DDV.Core.license = oneDayTrialLicense;
   Dynamsoft.DDV.Core.engineResourcePath = "https://cdn.jsdelivr.net/npm/dynamsoft-document-viewer@2.0.0/dist/engine";// Lead to a folder containing the distributed WASM files
   await Dynamsoft.DDV.Core.init();
   Dynamsoft.DDV.setProcessingHandler("imageFilter", new Dynamsoft.DDV.ImageFilter());
@@ -73,7 +90,14 @@ async function init(){
               "DeleteAll",
               "Pan",
               "SeparatorLine",
-              "InkAnnotation"
+              "InkAnnotation",
+              {
+                type: Dynamsoft.DDV.Elements.Button,
+                className: "save-icon",
+                events: {
+                  click: "saveOperations",
+                },
+              },
             ],
             enableScroll: true
           },
@@ -84,9 +108,7 @@ async function init(){
                 "type": "Pagination",
                 "className": "ddv-edit-viewer-pagination-desktop"
               },
-              "Load",
-              "Download",
-              "Print"
+              "Download"
             ]
           }
         ]
@@ -97,6 +119,10 @@ async function init(){
   editViewer = new Dynamsoft.DDV.EditViewer({
     uiConfig: uiConfig,
     container: document.getElementById("viewer")
+  });
+  editViewer.on("saveOperations",e => {
+    console.log("save");
+    saveOperations();
   });
   addInpaintingModeCheckbox();
   const docManager = Dynamsoft.DDV.documentManager;
@@ -120,6 +146,25 @@ async function init(){
   document.getElementsByClassName("ddv-redo-page")[0].addEventListener("mouseleave",function(){
     hoverOnUndoRedo = false;
   })
+}
+
+async function saveOperations(){
+  editViewer.saveOperations();
+  const index = editViewer.getCurrentPageIndex();
+  const result = await doc.saveToPng(index,{saveAnnotation:true});
+  //download(result);
+  doc.deletePages([index]);
+  await doc.loadSource(result, index);
+}
+
+function download(blob){
+  const imageURL = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = imageURL;
+  link.download = 'image.png';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 }
 
 function addInpaintingModeCheckbox(){
@@ -258,7 +303,7 @@ function getMaskImageForInpainting(pointsOfStrokes,stroke,rect,rectInPixels,scal
       }
     }
     ctx.strokeStyle = "red";
-    ctx.lineWidth = stroke * scaleX;
+    ctx.lineWidth = stroke / scaleX;
     ctx.stroke();
   }
   return canvas;
